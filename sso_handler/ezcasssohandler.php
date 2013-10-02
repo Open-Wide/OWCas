@@ -29,7 +29,9 @@ class eZCASSSOHandler {
     }
 
     static function initialize( $version, $serveur, $port, $path ) {
-        if( empty( $GLOBALS["phpCASInstanceExists"] ) ) {
+        try {
+            phpCAS::_validateClientExists( );
+        } catch( CAS_OutOfSequenceBeforeClientException $e ) {
             phpCAS::client( $version, $serveur, intval( $port ), $path );
             if( is_callable( 'phpCAS::setNoCasServerValidation' ) ) {
                 phpCAS::setNoCasServerValidation( );
@@ -43,14 +45,13 @@ class eZCASSSOHandler {
      */
     public function handleSSOLogin( ) {
         eZCASSSOHandler::initialize( $this->version, $this->serveur, $this->port, $this->path );
-
         if( phpCAS::isAuthenticated( ) ) {
             $currentUser = eZUser::fetchByName( phpCAS::getUser( ) );
         } else {
-            eZHTTPTool::redirect( phpCAS::getServerLoginURL () );
+            eZHTTPTool::redirect( phpCAS::getServerLoginURL( ) );
         }
         if( empty( $currentUser ) ) {
-            $currentUser = false;
+            $currentUser = FALSE;
         }
         return $currentUser;
     }
