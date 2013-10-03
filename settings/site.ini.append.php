@@ -2,7 +2,7 @@
 
 [UserSettings]
 ExtensionDirectory[]=owcas
-SingleSignOnHandlerArray[]=CAS
-LogoutRedirect=/cas/logout
+#SingleSignOnHandlerArray[]=CAS
+#LogoutRedirect=/cas/logout
 
 */ ?>
