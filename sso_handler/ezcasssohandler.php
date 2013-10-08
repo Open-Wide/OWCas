@@ -51,6 +51,9 @@ class eZCASSSOHandler {
             $currentUser = $this->importLDAPUser( phpCAS::getUser( ) );
             $user = eZUser::fetchByName( 'anonymous' );
             eZUser::setCurrentlyLoggedInUser( $user, $user->attribute( 'contentobject_id' ) );
+            if( empty( $currentUser ) ) {
+                $currentUser = eZUser::fetchByName( phpCAS::getUser( ) );
+            }
         } else {
             eZHTTPTool::redirect( phpCAS::getServerLoginURL( ) );
         }
