@@ -8,6 +8,7 @@ class eZCASSSOHandler {
     protected $serveur;
     protected $port = 443;
     protected $path = '/cas';
+    protected $isWebOutput;
 
     public function __construct( ) {
         $CASIni = eZINI::instance( 'owcas.ini' );
@@ -29,12 +30,16 @@ class eZCASSSOHandler {
     }
 
     static function initialize( $version, $serveur, $port, $path ) {
-        try {
-            phpCAS::_validateClientExists( );
-        } catch( CAS_OutOfSequenceBeforeClientException $e ) {
-            phpCAS::client( $version, $serveur, intval( $port ), $path );
-            if( is_callable( 'phpCAS::setNoCasServerValidation' ) ) {
-                phpCAS::setNoCasServerValidation( );
+        $cli = eZCLI::instance( );
+        $isWebOutput = $cli->isWebOutput( );
+        if( $isWebOutput ) {
+            try {
+                phpCAS::_validateClientExists( );
+            } catch( CAS_OutOfSequenceBeforeClientException $e ) {
+                phpCAS::client( $version, $serveur, intval( $port ), $path );
+                if( is_callable( 'phpCAS::setNoCasServerValidation' ) ) {
+                    phpCAS::setNoCasServerValidation( );
+                }
             }
         }
     }
@@ -44,23 +49,29 @@ class eZCASSSOHandler {
      * Si l'authentification echoue, retournez false
      */
     public function handleSSOLogin( ) {
-        eZCASSSOHandler::initialize( $this->version, $this->serveur, $this->port, $this->path );
-        if( phpCAS::isAuthenticated( ) ) {
-            $user = eZUser::fetchByName( 'admin' );
-            eZUser::setCurrentlyLoggedInUser( $user, $user->attribute( 'contentobject_id' ) );
-            $currentUser = $this->importLDAPUser( phpCAS::getUser( ) );
-            $user = eZUser::fetchByName( 'anonymous' );
-            eZUser::setCurrentlyLoggedInUser( $user, $user->attribute( 'contentobject_id' ) );
-            if( empty( $currentUser ) ) {
-                $currentUser = eZUser::fetchByName( phpCAS::getUser( ) );
+        $cli = eZCLI::instance( );
+        $isWebOutput = $cli->isWebOutput( );
+        if( $isWebOutput ) {
+            self::initialize( $this->version, $this->serveur, $this->port, $this->path );
+            if( phpCAS::isAuthenticated( ) ) {
+                $user = eZUser::fetchByName( 'admin' );
+                eZUser::setCurrentlyLoggedInUser( $user, $user->attribute( 'contentobject_id' ) );
+                $currentUser = $this->importLDAPUser( phpCAS::getUser( ) );
+                $user = eZUser::fetchByName( 'anonymous' );
+                eZUser::setCurrentlyLoggedInUser( $user, $user->attribute( 'contentobject_id' ) );
+                if( empty( $currentUser ) ) {
+                    $currentUser = eZUser::fetchByName( phpCAS::getUser( ) );
+                }
+            } else {
+                eZHTTPTool::redirect( phpCAS::getServerLoginURL( ) );
             }
+            if( empty( $currentUser ) ) {
+                $currentUser = FALSE;
+            }
+            return $currentUser;
         } else {
-            eZHTTPTool::redirect( phpCAS::getServerLoginURL( ) );
+            return FALSE;
         }
-        if( empty( $currentUser ) ) {
-            $currentUser = FALSE;
-        }
-        return $currentUser;
     }
 
     /*!
